@@ -1,5 +1,5 @@
 {
-  description = "A simple flake-based rust project";
+  description = "Userspace driver for the JD79668 e-ink display controller";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
