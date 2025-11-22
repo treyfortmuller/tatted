@@ -4,7 +4,7 @@ This is a userspace driver for the JD79668 4-color 4.2" e-ink display controller
 * `libtatted` the high-level driver library, including image pre-processing
 * `tatctl` a small CLI for controlling the display, rendering images, hardware resets, etc.
 
-All my testing of this crate has been using a Raspberry Pi 4 Model B running NixOS rather than Raspberry Pi OS, my NixOS configuration for the pi can be found [here](https://github.com/treyfortmuller/pi-nixos).
+This crate makes heavy use of linux specifics for hardware peripheral manipulation, the display requires GPIOs, i2c, and SPI so the `target_os` for this project is linux only. All my testing of this crate has been using a Raspberry Pi 4 Model B running NixOS rather than Raspberry Pi OS, my NixOS configuration for the pi can be found [here](https://github.com/treyfortmuller/pi-nixos).
 
 I built this thing with help from a now-archived Rust port of the Pimoroni [inky](https://github.com/pimoroni/inky) python library authored by Axel Örn Sigurðsson called [`paperwave`](https://crates.io/crates/paperwave). 
 
