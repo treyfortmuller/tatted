@@ -22,7 +22,15 @@ enum Commands {
     },
 
     /// Image pre-processing steps for e-ink rendering
-    Image,
+    Image {
+        /// The image to pre-process for rendering
+        #[arg(short, long)]
+        image: Utf8PathBuf,
+
+        /// Outpath for the pre-processed image
+        #[arg(short, long, default_value_t = Utf8PathBuf::from("./output.png"))]
+        outpath: Utf8PathBuf,
+    },
 }
 
 /// Subcommands for display manipulation
