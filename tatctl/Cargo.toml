@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+anyhow = "1.0.100"
 camino = "1.2.1"
 clap = { version = "4.5.53", features = ["derive"] }
 libtatted = { version = "0.1.0", path = "../libtatted" }

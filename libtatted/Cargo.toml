@@ -4,5 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+gpiocdev = "0.8.0"
+i2cdev = "0.6.2"
+spidev = "0.7.1"
 strum = "0.27.2"
-
+thiserror = "2.0.17"
+image = { version = "0.25.9", features = ["png", "bmp", "jpeg" ] }
+camino = "1.2.1"

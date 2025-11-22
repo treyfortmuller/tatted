@@ -1,5 +1,6 @@
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
+use libtatted::{BiLevel, ImagePreProcessor, Resolution};
 use tatctl::CliColors;
 
 #[derive(Parser)]
@@ -18,18 +19,18 @@ enum Commands {
     /// Display manipulation and rendering
     Display {
         #[command(subcommand)]
-        cmd: DisplayCommands,
+        command: DisplayCommands,
     },
 
     /// Image pre-processing steps for e-ink rendering
     Image {
         /// The image to pre-process for rendering
         #[arg(short, long)]
-        image: Utf8PathBuf,
+        image_path: Utf8PathBuf,
 
-        /// Outpath for the pre-processed image
+        /// Out path for the pre-processed image
         #[arg(short, long, default_value_t = Utf8PathBuf::from("./output.png"))]
-        outpath: Utf8PathBuf,
+        out_path: Utf8PathBuf,
     },
 }
 
@@ -57,8 +58,35 @@ pub enum DisplayCommands {
     },
 }
 
-fn main() {
-    let _cli = Cli::parse();
+fn main() -> anyhow::Result<()> {
+    let cli = Cli::parse();
 
     println!("Hellow world!");
+
+    match cli.command {
+        Commands::Image {
+            image_path,
+            out_path,
+        } => {
+            let preproc = ImagePreProcessor::new(BiLevel, Resolution::new(400, 300));
+            let index_image = preproc.prepare_from_path(image_path)?;
+            index_image.save(out_path)?;
+        }
+        Commands::Display { command } => match command {
+            DisplayCommands::Detect => {
+                todo!()
+            }
+            DisplayCommands::Clear => {
+                todo!()
+            }
+            DisplayCommands::RenderImage { path: _ } => {
+                todo!()
+            }
+            DisplayCommands::RenderColor { color: _ } => {
+                todo!()
+            }
+        },
+    }
+
+    Ok(())
 }
