@@ -1,7 +1,7 @@
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
 use libtatted::{
-    ImagePreProcessor, InkyFourColorMap, MonoColorMap, Resolution, SupportedColorMaps,
+    ImagePreProcessor, Jd79668Config, InkyJd79668,  InkyFourColorMap, MonoColorMap, Resolution, SupportedColorMaps,
 };
 use tatctl::{CliColorMaps, CliColors};
 
@@ -80,12 +80,12 @@ fn main() -> anyhow::Result<()> {
             dither,
         } => {
             let res = Resolution::new(400, 300);
+
             let index_image = match SupportedColorMaps::from(colormap) {
                 SupportedColorMaps::InkyFourColor(InkyFourColorMap) => {
                     let preproc = ImagePreProcessor::new(InkyFourColorMap, res);
                     preproc.prepare_from_path(image_path, dither)?
                 }
-
                 SupportedColorMaps::Mono(MonoColorMap) => {
                     let preproc = ImagePreProcessor::new(MonoColorMap, res);
                     preproc.prepare_from_path(image_path, dither)?
@@ -94,20 +94,25 @@ fn main() -> anyhow::Result<()> {
 
             index_image.save(out_path)?;
         }
-        Commands::Display { command } => match command {
-            DisplayCommands::Detect => {
-                todo!()
+        Commands::Display { command } => {
+            let mut inky = InkyJd79668::new(Jd79668Config::default())?;
+            inky.initialize()?;
+
+            match command {
+                DisplayCommands::Detect => {
+                    todo!()
+                }
+                DisplayCommands::Clear => {
+                    todo!()
+                }
+                DisplayCommands::RenderImage { path: _ } => {
+                    todo!()
+                }
+                DisplayCommands::RenderColor { color: _ } => {
+                    todo!()
+                }
             }
-            DisplayCommands::Clear => {
-                todo!()
-            }
-            DisplayCommands::RenderImage { path: _ } => {
-                todo!()
-            }
-            DisplayCommands::RenderColor { color: _ } => {
-                todo!()
-            }
-        },
+        }
     }
 
     Ok(())
