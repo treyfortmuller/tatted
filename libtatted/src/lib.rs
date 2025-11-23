@@ -1,12 +1,16 @@
 pub mod colormap;
+pub mod eeprom;
 pub mod error;
 pub mod image;
 pub mod jd79668;
+pub mod peripherals;
 
 pub use colormap::*;
+pub use eeprom::*;
 pub use error::*;
 pub use image::*;
 pub use jd79668::*;
+pub use peripherals::*;
 
 /// Resolution, of an image or a display, expressed in pixels
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
