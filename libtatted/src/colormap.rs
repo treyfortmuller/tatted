@@ -3,53 +3,53 @@ use strum::{Display, EnumIter, IntoEnumIterator};
 
 use crate::InkyError;
 
-/// Colors supported by the JD79668
 #[derive(Copy, Clone, Debug, EnumIter, Display)]
 #[strum(serialize_all = "lowercase")]
-pub enum SupportedColors {
+pub enum InkyFourColorPalette {
     Black = 0,
     White = 1,
     Yellow = 2,
     Red = 3,
 }
 
-impl From<SupportedColors> for Rgb<u8> {
-    fn from(color: SupportedColors) -> Self {
+// Convert between our colors and image::Rgb values
+impl From<InkyFourColorPalette> for Rgb<u8> {
+    fn from(color: InkyFourColorPalette) -> Self {
         match color {
-            SupportedColors::Black => Rgb([0, 0, 0]),
-            SupportedColors::White => Rgb([255, 255, 255]),
-            SupportedColors::Yellow => Rgb([255, 255, 0]),
-            SupportedColors::Red => Rgb([255, 0, 0]),
+            InkyFourColorPalette::Black => Rgb([0, 0, 0]),
+            InkyFourColorPalette::White => Rgb([255, 255, 255]),
+            InkyFourColorPalette::Yellow => Rgb([255, 255, 0]),
+            InkyFourColorPalette::Red => Rgb([255, 0, 0]),
         }
     }
 }
 
-impl TryFrom<usize> for SupportedColors {
+// Index into our palette to construct index images
+impl TryFrom<usize> for InkyFourColorPalette {
     type Error = InkyError;
 
     fn try_from(value: usize) -> Result<Self, Self::Error> {
         match value {
-            0 => Ok(SupportedColors::Black),
-            1 => Ok(SupportedColors::White),
-            2 => Ok(SupportedColors::Yellow),
-            3 => Ok(SupportedColors::Red),
+            0 => Ok(InkyFourColorPalette::Black),
+            1 => Ok(InkyFourColorPalette::White),
+            2 => Ok(InkyFourColorPalette::Yellow),
+            3 => Ok(InkyFourColorPalette::Red),
             _ => Err(InkyError::OutOfPaletteError),
         }
     }
 }
 
-// TODO (tff): combine with the above enum
-#[derive(Copy, Clone)]
-pub struct InkyFourColorPalette;
+#[derive(Copy, Clone, Debug)]
+pub struct InkyFourColorMap;
 
-impl ColorMap for InkyFourColorPalette {
+impl ColorMap for InkyFourColorMap {
     type Color = Rgb<u8>;
 
     fn index_of(&self, color: &Self::Color) -> usize {
         let mut best_index = 0usize;
         let mut best_distance = i32::MAX;
 
-        for (index, palette_item) in SupportedColors::iter().enumerate() {
+        for (index, palette_item) in InkyFourColorPalette::iter().enumerate() {
             let palette_color = Rgb::from(palette_item);
 
             // It would be sweet if image::Rgb<_> implemented ops::Sub, but alas
@@ -72,7 +72,7 @@ impl ColorMap for InkyFourColorPalette {
     }
 
     fn lookup(&self, index: usize) -> Option<Self::Color> {
-        SupportedColors::try_from(index)
+        InkyFourColorPalette::try_from(index)
             .map(|color| Rgb::from(color))
             .ok()
     }
@@ -85,13 +85,4 @@ impl ColorMap for InkyFourColorPalette {
 
         *color = Rgb::from(nearest_color)
     }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    // TODO (tff)
-    #[test]
-    fn basic_mapping() {}
 }

@@ -1,8 +1,9 @@
 use camino::Utf8PathBuf;
 use image::imageops::colorops::{ColorMap, index_colors};
+use image::imageops::dither;
 use image::{DynamicImage, GrayImage, ImageFormat, ImageReader, Luma, RgbImage};
 
-use crate::{InkyFourColorPalette, InkyResult, Resolution};
+use crate::{InkyFourColorMap, InkyFourColorPalette, InkyResult, Resolution};
 
 // Re-export useful ColorMaps
 pub use image::imageops::colorops::BiLevel;
@@ -63,7 +64,7 @@ impl ImagePreProcessor<BiLevel> {
 
 // TODO (tff): eliminate this duplication
 
-impl ImagePreProcessor<InkyFourColorPalette> {
+impl ImagePreProcessor<InkyFourColorMap> {
     pub fn prepare(&self, img: &DynamicImage) -> InkyResult<IndexImage> {
         let input_res = Resolution::new(img.width() as u16, img.height() as u16);
 
@@ -97,9 +98,48 @@ impl ImagePreProcessor<InkyFourColorPalette> {
         ))
     }
 
+    pub fn prepare_dither(&self, img: &DynamicImage) -> InkyResult<IndexImage> {
+        let input_res = Resolution::new(img.width() as u16, img.height() as u16);
+
+        // In the future we could do some kind of intelligent resizing or something, but for now just
+        // throw an error if we don't get the native resolution of the display we're using.
+        if input_res != self.desired_res {
+            return Err(crate::InkyError::UnsupportedResolution {
+                expected: self.desired_res,
+                found: input_res,
+            });
+        }
+
+        let rgb = &mut img.to_rgb8();
+        dither(rgb, &self.color_map);
+        let index_image = index_colors(&rgb, &self.color_map);
+
+        // Remap to a colorspace we can encode for saving prepared images to the filesystem
+        let mapped = image::ImageBuffer::from_fn(
+            self.desired_res.width.into(),
+            self.desired_res.height.into(),
+            |x, y| {
+                let p = index_image.get_pixel(x, y);
+                self.color_map
+                    .lookup(p.0[0] as usize)
+                    .expect("indexed color out-of-range")
+            },
+        );
+
+        Ok(IndexImage::new(
+            DynamicImage::from(index_image),
+            DynamicImage::from(mapped),
+        ))
+    }
+
     pub fn prepare_from_path(&self, path: Utf8PathBuf) -> InkyResult<IndexImage> {
         let img = ImageReader::open(path)?.decode()?;
         self.prepare(&img)
+    }
+
+    pub fn prepare_dither_from_path(&self, path: Utf8PathBuf) -> InkyResult<IndexImage> {
+        let img = ImageReader::open(path)?.decode()?;
+        self.prepare_dither(&img)
     }
 }
 

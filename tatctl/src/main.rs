@@ -1,6 +1,6 @@
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
-use libtatted::{BiLevel, ImagePreProcessor, InkyFourColorPalette, Resolution};
+use libtatted::{BiLevel, ImagePreProcessor, InkyFourColorMap, Resolution};
 use tatctl::CliColors;
 
 #[derive(Parser)]
@@ -70,8 +70,8 @@ fn main() -> anyhow::Result<()> {
             // let index_image = preproc.prepare_from_path(image_path)?;
             // index_image.save(out_path)?;
 
-            let preproc = ImagePreProcessor::new(InkyFourColorPalette, Resolution::new(400, 300));
-            let index_image = preproc.prepare_from_path(image_path)?;
+            let preproc = ImagePreProcessor::new(InkyFourColorMap, Resolution::new(400, 300));
+            let index_image = preproc.prepare_dither_from_path(image_path)?;
             index_image.save(out_path)?;
         }
         Commands::Display { command } => match command {
