@@ -1,22 +1,14 @@
+pub mod colormap;
 pub mod error;
 pub mod image;
 pub mod jd79668;
 
+pub use colormap::*;
 pub use error::*;
 pub use image::*;
 pub use jd79668::*;
 
 use strum::Display;
-
-/// Colors supported by the JD79668
-#[derive(Copy, Clone, Debug, Display)]
-#[strum(serialize_all = "lowercase")]
-pub enum SupportedColors {
-    Black,
-    White,
-    Yellow,
-    Red,
-}
 
 /// Resolution, of an image or a display, expressed in pixels
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

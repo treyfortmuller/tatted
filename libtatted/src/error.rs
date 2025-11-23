@@ -53,6 +53,9 @@ pub enum InkyError {
         expected: Resolution,
         found: Resolution,
     },
+
+    #[error("color to be rendered was outside of the supported color palette")]
+    OutOfPaletteError,
 }
 
 pub type InkyResult<T> = Result<T, InkyError>;

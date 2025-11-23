@@ -1,6 +1,6 @@
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
-use libtatted::{BiLevel, ImagePreProcessor, Resolution};
+use libtatted::{BiLevel, ImagePreProcessor, InkyFourColorPalette, Resolution};
 use tatctl::CliColors;
 
 #[derive(Parser)]
@@ -61,14 +61,16 @@ pub enum DisplayCommands {
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
-    println!("Hellow world!");
-
     match cli.command {
         Commands::Image {
             image_path,
             out_path,
         } => {
-            let preproc = ImagePreProcessor::new(BiLevel, Resolution::new(400, 300));
+            // let preproc = ImagePreProcessor::new(BiLevel, Resolution::new(400, 300));
+            // let index_image = preproc.prepare_from_path(image_path)?;
+            // index_image.save(out_path)?;
+
+            let preproc = ImagePreProcessor::new(InkyFourColorPalette, Resolution::new(400, 300));
             let index_image = preproc.prepare_from_path(image_path)?;
             index_image.save(out_path)?;
         }
