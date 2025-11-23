@@ -1,3 +1,6 @@
+//! A colormap consisting of only black and white. Similar to the [`image::imageops::BiLevel`] colormap
+//! but operates on [`image::Rgb`] rather than [`image::Luma`] to eliminate some complicated generics.
+
 use image::{Rgb, imageops::ColorMap};
 use strum::{Display, EnumIter, IntoEnumIterator};
 
@@ -5,57 +8,51 @@ use crate::InkyError;
 
 #[derive(Copy, Clone, Debug, EnumIter, Display)]
 #[strum(serialize_all = "lowercase")]
-pub enum InkyFourColorPalette {
+pub enum MonoColorPalette {
     Black = 0,
     White = 1,
-    Yellow = 2,
-    Red = 3,
 }
 
 // Convert between our colors and image::Rgb values
-impl From<InkyFourColorPalette> for Rgb<u8> {
-    fn from(color: InkyFourColorPalette) -> Self {
+impl From<MonoColorPalette> for Rgb<u8> {
+    fn from(color: MonoColorPalette) -> Self {
         match color {
-            InkyFourColorPalette::Black => Rgb([0, 0, 0]),
-            InkyFourColorPalette::White => Rgb([255, 255, 255]),
-            InkyFourColorPalette::Yellow => Rgb([255, 255, 0]),
-            InkyFourColorPalette::Red => Rgb([255, 0, 0]),
+            MonoColorPalette::Black => Rgb([0, 0, 0]),
+            MonoColorPalette::White => Rgb([255, 255, 255]),
         }
     }
 }
 
 // Index into our palette to construct index images
-impl TryFrom<usize> for InkyFourColorPalette {
+impl TryFrom<usize> for MonoColorPalette {
     type Error = InkyError;
 
     fn try_from(value: usize) -> Result<Self, Self::Error> {
         match value {
-            0 => Ok(InkyFourColorPalette::Black),
-            1 => Ok(InkyFourColorPalette::White),
-            2 => Ok(InkyFourColorPalette::Yellow),
-            3 => Ok(InkyFourColorPalette::Red),
+            0 => Ok(MonoColorPalette::Black),
+            1 => Ok(MonoColorPalette::White),
             _ => Err(InkyError::OutOfPaletteError),
         }
     }
 }
 
 #[derive(Copy, Clone, Debug)]
-pub struct InkyFourColorMap;
+pub struct MonoColorMap;
 
-impl ColorMap for InkyFourColorMap {
+impl ColorMap for MonoColorMap {
     type Color = Rgb<u8>;
 
     fn index_of(&self, color: &Self::Color) -> usize {
         let mut best_index = 0usize;
         let mut best_distance = i32::MAX;
 
-        for (index, palette_item) in InkyFourColorPalette::iter().enumerate() {
+        for (index, palette_item) in MonoColorPalette::iter().enumerate() {
             let palette_color = Rgb::from(palette_item);
 
             // It would be sweet if image::Rgb<_> implemented ops::Sub, but alas
-            let dr = (color[0] as i32 - palette_color[0] as i32);
-            let dg = (color[1] as i32 - palette_color[1] as i32);
-            let db = (color[2] as i32 - palette_color[2] as i32);
+            let dr = color[0] as i32 - palette_color[0] as i32;
+            let dg = color[1] as i32 - palette_color[1] as i32;
+            let db = color[2] as i32 - palette_color[2] as i32;
             let distance = dr.pow(2) + dg.pow(2) + db.pow(2);
 
             if distance < best_distance {
@@ -72,7 +69,7 @@ impl ColorMap for InkyFourColorMap {
     }
 
     fn lookup(&self, index: usize) -> Option<Self::Color> {
-        InkyFourColorPalette::try_from(index)
+        MonoColorPalette::try_from(index)
             .map(|color| Rgb::from(color))
             .ok()
     }

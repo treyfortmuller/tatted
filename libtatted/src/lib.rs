@@ -8,8 +8,6 @@ pub use error::*;
 pub use image::*;
 pub use jd79668::*;
 
-use strum::Display;
-
 /// Resolution, of an image or a display, expressed in pixels
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Resolution {

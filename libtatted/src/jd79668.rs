@@ -2,12 +2,8 @@ use crate::{InkyError, InkyResult, Resolution};
 use camino::Utf8PathBuf;
 use gpiocdev::Request;
 use gpiocdev::line::{Bias, Direction, Value};
-use image::imageops::BiLevel;
-use image::imageops::colorops::ColorMap;
-use image::{DynamicImage, GenericImageView, RgbImage};
 use spidev::{SpiModeFlags, Spidev, SpidevOptions};
 use std::io::Write;
-use std::path::Path;
 use std::thread;
 use std::time::{Duration, Instant};
 

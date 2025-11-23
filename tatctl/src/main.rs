@@ -1,7 +1,9 @@
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
-use libtatted::{BiLevel, ImagePreProcessor, InkyFourColorMap, Resolution};
-use tatctl::CliColors;
+use libtatted::{
+    ImagePreProcessor, InkyFourColorMap, MonoColorMap, Resolution, SupportedColorMaps,
+};
+use tatctl::{CliColorMaps, CliColors};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -31,6 +33,15 @@ enum Commands {
         /// Out path for the pre-processed image
         #[arg(short, long, default_value_t = Utf8PathBuf::from("./output.png"))]
         out_path: Utf8PathBuf,
+
+        /// Color map to use for spatial quantization of images
+        #[arg(short, long, default_value_t = CliColorMaps::InkyFourColor)]
+        colormap: CliColorMaps,
+
+        /// Enable Floyd-Steinberg dithering in the preprocessing pipeline, simple color quantization
+        /// is the default
+        #[arg(short, long)]
+        dither: bool,
     },
 }
 
@@ -65,13 +76,22 @@ fn main() -> anyhow::Result<()> {
         Commands::Image {
             image_path,
             out_path,
+            colormap,
+            dither,
         } => {
-            // let preproc = ImagePreProcessor::new(BiLevel, Resolution::new(400, 300));
-            // let index_image = preproc.prepare_from_path(image_path)?;
-            // index_image.save(out_path)?;
+            let res = Resolution::new(400, 300);
+            let index_image = match SupportedColorMaps::from(colormap) {
+                SupportedColorMaps::InkyFourColor(InkyFourColorMap) => {
+                    let preproc = ImagePreProcessor::new(InkyFourColorMap, res);
+                    preproc.prepare_from_path(image_path, dither)?
+                }
 
-            let preproc = ImagePreProcessor::new(InkyFourColorMap, Resolution::new(400, 300));
-            let index_image = preproc.prepare_dither_from_path(image_path)?;
+                SupportedColorMaps::Mono(MonoColorMap) => {
+                    let preproc = ImagePreProcessor::new(MonoColorMap, res);
+                    preproc.prepare_from_path(image_path, dither)?
+                }
+            };
+
             index_image.save(out_path)?;
         }
         Commands::Display { command } => match command {
