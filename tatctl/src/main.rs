@@ -1,7 +1,8 @@
 use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
 use libtatted::{
-    ImagePreProcessor, InkyFourColorMap, MonoColorMap, Resolution, SupportedColorMaps,
+    ImagePreProcessor, InkyFourColorMap, InkyFourColorPalette, InkyJd79668, Jd79668Config,
+    MonoColorMap, Resolution, Rgb, SupportedColorMaps,
 };
 use tatctl::{CliColorMaps, CliColors};
 
@@ -58,7 +59,12 @@ pub enum DisplayCommands {
     RenderImage {
         /// Filepath to the image to render
         #[arg(short, long)]
-        path: Utf8PathBuf,
+        image_path: Utf8PathBuf,
+
+        /// Enable Floyd-Steinberg dithering in the preprocessing pipeline, simple color quantization
+        /// is the default
+        #[arg(short, long)]
+        dither: bool,
     },
 
     /// Render a solid color
@@ -72,6 +78,8 @@ pub enum DisplayCommands {
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
+    let res = Resolution::new(400, 300);
+
     match cli.command {
         Commands::Image {
             image_path,
@@ -79,35 +87,51 @@ fn main() -> anyhow::Result<()> {
             colormap,
             dither,
         } => {
-            let res = Resolution::new(400, 300);
-            let index_image = match SupportedColorMaps::from(colormap) {
+            let inky_img = match SupportedColorMaps::from(colormap) {
                 SupportedColorMaps::InkyFourColor(InkyFourColorMap) => {
                     let preproc = ImagePreProcessor::new(InkyFourColorMap, res);
                     preproc.prepare_from_path(image_path, dither)?
                 }
-
                 SupportedColorMaps::Mono(MonoColorMap) => {
                     let preproc = ImagePreProcessor::new(MonoColorMap, res);
                     preproc.prepare_from_path(image_path, dither)?
                 }
             };
 
-            index_image.save(out_path)?;
+            inky_img.save(out_path)?;
         }
-        Commands::Display { command } => match command {
-            DisplayCommands::Detect => {
-                todo!()
+        Commands::Display { command } => {
+            let mut inky = InkyJd79668::new(Jd79668Config::default())?;
+            inky.initialize()?;
+
+            // Would like to add the option to save the preprocessed image to the filesystem here before
+            // showing it on the display.
+            match command {
+                DisplayCommands::Detect => {
+                    todo!()
+                }
+                DisplayCommands::Clear => {
+                    let preproc = ImagePreProcessor::new(InkyFourColorMap, res);
+                    let inky_img =
+                        preproc.new_color(libtatted::Rgb::from(InkyFourColorPalette::White))?;
+
+                    inky.show(&inky_img)?;
+                }
+                DisplayCommands::RenderImage { image_path, dither } => {
+                    let preproc = ImagePreProcessor::new(InkyFourColorMap, res);
+                    let inky_img = preproc.prepare_from_path(image_path, dither)?;
+
+                    inky.show(&inky_img)?;
+                }
+                DisplayCommands::RenderColor { color } => {
+                    let palette_color = InkyFourColorPalette::from(color);
+                    let preproc = ImagePreProcessor::new(InkyFourColorMap, res);
+                    let inky_img = preproc.new_color(Rgb::from(palette_color))?;
+
+                    inky.show(&inky_img)?;
+                }
             }
-            DisplayCommands::Clear => {
-                todo!()
-            }
-            DisplayCommands::RenderImage { path: _ } => {
-                todo!()
-            }
-            DisplayCommands::RenderColor { color: _ } => {
-                todo!()
-            }
-        },
+        }
     }
 
     Ok(())
