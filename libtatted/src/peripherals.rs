@@ -35,7 +35,7 @@ impl ProbePeripherals {
     }
 
     fn probe_spi() -> SpiDevResults {
-        let dev_paths = list_matching("/dev", "spidev");
+        let dev_paths = list_matching(Utf8PathBuf::from("/dev"), "spidev");
 
         let mut res = HashMap::new();
 
@@ -48,7 +48,7 @@ impl ProbePeripherals {
     }
 
     fn probe_i2c() -> I2cBusResults {
-        let bus_paths = list_matching("/dev", "i2c-");
+        let bus_paths = list_matching(Utf8PathBuf::from("/dev"), "i2c-");
 
         let mut res = HashMap::new();
 
@@ -62,7 +62,7 @@ impl ProbePeripherals {
     }
 
     fn probe_gpios() -> GpioChipResults {
-        let chip_paths = list_matching("/dev", "gpiochip");
+        let chip_paths = list_matching(Utf8PathBuf::from("/dev"), "gpiochip");
 
         let mut res = HashMap::new();
 
@@ -78,14 +78,15 @@ impl ProbePeripherals {
 /// Return a list of filepaths to devices in the argument directory with the argument filename prefix.
 ///
 /// e.g. list_matching("/dev", "spidev") -> [ /dev/spidev0.0 ]
-fn list_matching(dir: &str, prefix: &str) -> Vec<Utf8PathBuf> {
+fn list_matching(dir: Utf8PathBuf, prefix: &str) -> Vec<Utf8PathBuf> {
     let mut entries = Vec::new();
-    if let Ok(read_dir) = fs::read_dir(dir) {
+
+    if let Ok(read_dir) = dir.read_dir_utf8() {
         for entry in read_dir.flatten() {
             let path = entry.path();
-            if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+            if let Some(name) = path.file_name() {
                 if name.starts_with(prefix) {
-                    entries.push(Utf8PathBuf::from(name));
+                    entries.push(Utf8PathBuf::from(path));
                 }
             }
         }
