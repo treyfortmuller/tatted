@@ -1,7 +1,11 @@
 use crate::{InkyResult, Resolution};
 use camino::Utf8PathBuf;
 use image::imageops::colorops::{ColorMap, index_colors};
-use image::{DynamicImage, ImageReader, Rgb};
+use image::{DynamicImage, ImageBuffer, ImageReader, Luma, Rgb};
+
+/// An image buffer which contains 1 byte per pixel, with each pixel referring to an index in a color palette,
+/// not actually "luminance".
+type IndexImage = ImageBuffer<Luma<u8>, Vec<u8>>;
 
 pub struct ImagePreProcessor<CMap: ColorMap<Color = Rgb<u8>>> {
     pub color_map: CMap,
@@ -16,7 +20,7 @@ impl<CMap: ColorMap<Color = Rgb<u8>>> ImagePreProcessor<CMap> {
         }
     }
 
-    pub fn prepare(&self, img: &DynamicImage, dither: bool) -> InkyResult<IndexImage> {
+    pub fn prepare(&self, img: &DynamicImage, dither: bool) -> InkyResult<InkyImage> {
         let input_res = Resolution::new(img.width() as u16, img.height() as u16);
 
         // In the future we could do some kind of intelligent resizing or something, but for now just
@@ -46,25 +50,25 @@ impl<CMap: ColorMap<Color = Rgb<u8>>> ImagePreProcessor<CMap> {
             },
         );
 
-        Ok(IndexImage::new(
-            DynamicImage::from(index_image),
-            DynamicImage::from(mapped),
-        ))
+        Ok(InkyImage::new(index_image, DynamicImage::from(mapped)))
     }
 
-    pub fn prepare_from_path(&self, path: Utf8PathBuf, dither: bool) -> InkyResult<IndexImage> {
+    pub fn prepare_from_path(&self, path: Utf8PathBuf, dither: bool) -> InkyResult<InkyImage> {
         let img = ImageReader::open(path)?.decode()?;
         self.prepare(&img, dither)
     }
 }
 
-pub struct IndexImage {
-    index_img: DynamicImage,
+/// A pre-processed image containing an [`IndexImage`] ready to be bit-packed and serialized for the display,
+/// as well as a [`DynamicImage`] containing pixel color information representative of whats contained within
+/// the [`IndexImage`], ready to be encoded and saved to the filesystem for viewing.
+pub struct InkyImage {
+    index_img: IndexImage,
     pixel_img: DynamicImage,
 }
 
-impl IndexImage {
-    pub fn new(index_img: DynamicImage, pixel_img: DynamicImage) -> Self {
+impl InkyImage {
+    pub fn new(index_img: IndexImage, pixel_img: DynamicImage) -> Self {
         Self {
             index_img,
             pixel_img,
