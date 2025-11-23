@@ -11,12 +11,12 @@ pub use jd79668::*;
 /// Resolution, of an image or a display, expressed in pixels
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Resolution {
-    pub width: u16,
-    pub height: u16,
+    pub width: u32,
+    pub height: u32,
 }
 
 impl Resolution {
-    pub fn new(w: u16, h: u16) -> Self {
+    pub fn new(w: u32, h: u32) -> Self {
         Self {
             width: w,
             height: h,

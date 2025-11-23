@@ -21,7 +21,7 @@ impl<CMap: ColorMap<Color = Rgb<u8>>> ImagePreProcessor<CMap> {
     }
 
     pub fn prepare(&self, img: &DynamicImage, dither: bool) -> InkyResult<InkyImage> {
-        let input_res = Resolution::new(img.width() as u16, img.height() as u16);
+        let input_res = Resolution::new(img.width(), img.height());
 
         // In the future we could do some kind of intelligent resizing or something, but for now just
         // throw an error if we don't get the native resolution of the display we're using.
