@@ -1,4 +1,4 @@
-use crate::{InkyError, InkyResult, Resolution};
+use crate::{InkyError, InkyImage, InkyResult, Resolution};
 use camino::Utf8PathBuf;
 use gpiocdev::Request;
 use gpiocdev::line::{Bias, Direction, Value};
@@ -144,12 +144,6 @@ pub struct InkyJd79668 {
     spi: Spidev,
     gpios: Jd79668Gpios,
     display_res: Resolution,
-
-    // Note this represents an indexed image buffer, i.e. 1-pixel per byte with each byte representing
-    // the index of a color in the display's palette, not the display-native dense bit-packing where we fit
-    // 4-pixels per byte.
-    buffer: Vec<u8>,
-
     initialized: bool,
 }
 
@@ -172,14 +166,10 @@ impl InkyJd79668 {
             .build();
         spi.configure(&options)?;
 
-        // Pre-allocate a correctly sized image buffer
-        let buffer = vec![0; (cfg.display_res.width * cfg.display_res.height) as usize];
-
         Ok(Self {
             spi,
             gpios,
             display_res: cfg.display_res,
-            buffer,
             initialized: false,
         })
     }
@@ -303,18 +293,26 @@ impl InkyJd79668 {
         Ok(())
     }
 
-    /// Refresh the display with the store image data
-    pub fn show(&mut self) -> InkyResult<()> {
+    /// Refresh the display with the [`InkyImage`], this clones the stored palletized image.
+    pub fn show(&mut self, img: &InkyImage) -> InkyResult<()> {
         use Jd79668Commands as Cmd;
 
         if !self.initialized {
             return Err(InkyError::Uninitialized);
         }
 
+        let img_res = img.resolution();
+        if img_res != self.display_res {
+            return Err(InkyError::UnsupportedResolution {
+                expected: self.display_res,
+                found: img_res,
+            });
+        }
+
         // A nice liberal timeout, most commands won't use anywhere near all of this except for the display refresh.
         let timeout = Duration::from_secs(40);
 
-        let packed = self.pack_buffer(&self.buffer)?;
+        let packed = Self::pack_buffer(&img.index_img().into_vec())?;
         self.send_command(Cmd::DataStartTransmission as u8, Some(&packed))?;
 
         // TODO (tff): this whole power on, display refresh, power off, deep sleep
@@ -329,9 +327,6 @@ impl InkyJd79668 {
     }
 
     // TODO (tff): unit test this
-    // TODO (tff): probably want to change this interface, since we should just be storing an Image container
-    // and not a buffer, and then we want to unit test this without the full display struct so break this out
-    // to a free function.
     //
     /// Pack a palletized image into a flattened 2-bit-per-pixel buffer to be sent via SPI to the display.
     ///
@@ -339,16 +334,8 @@ impl InkyJd79668 {
     /// - Output: Vec<u8> where each byte contains 4 pixels:
     ///           [p0 p1 p2 p3] → (p0<<6) | (p1<<4) | (p2<<2) | (p3)
     ///
-    /// Panics if any pixel value > 3.
-    fn pack_buffer(&self, pixels: &[u8]) -> InkyResult<Vec<u8>> {
-        let expected_len = (self.display_res.width * self.display_res.height) as usize;
-        if pixels.len() != expected_len {
-            return Err(InkyError::InvalidBufferLength {
-                expected: expected_len,
-                found: pixels.len(),
-            });
-        }
-
+    /// Returns an error if any pixel value > 3.
+    fn pack_buffer(pixels: &[u8]) -> InkyResult<Vec<u8>> {
         if !pixels.iter().all(|&p| p < 4) {
             return Err(InkyError::InvalidPalettization {
                 index_min: 0,

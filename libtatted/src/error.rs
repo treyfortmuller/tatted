@@ -32,19 +32,6 @@ pub enum InkyError {
         index_max: usize,
     },
 
-    #[error(
-        "image buffer is the wrong length, expected {} and found {}",
-        expected,
-        found
-    )]
-    InvalidBufferLength {
-        /// The expected size of a palletized image buffer
-        expected: usize,
-
-        /// The buffer length discovered for bit-packing
-        found: usize,
-    },
-
     #[error("error during image encoding or decoding: {0}")]
     ImageError(#[from] image::ImageError),
 
