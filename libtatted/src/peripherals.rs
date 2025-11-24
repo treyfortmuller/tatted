@@ -137,9 +137,7 @@ impl fmt::Display for GpioChipResults {
             builder.push_record([path.to_string(), res_str]);
         }
 
-        let mut table = builder.build();
-        table.with(Style::rounded());
-
+        let table = builder.build();
         write!(f, "{}", table)
     }
 }
@@ -165,9 +163,7 @@ impl fmt::Display for I2cBusResults {
             builder.push_record([path.to_string(), res_str]);
         }
 
-        let mut table = builder.build();
-        table.with(Style::rounded());
-
+        let table = builder.build();
         write!(f, "{}", table)
     }
 }
@@ -193,9 +189,7 @@ impl fmt::Display for SpiDevResults {
             builder.push_record([path.to_string(), res_str]);
         }
 
-        let mut table = builder.build();
-        table.with(Style::rounded());
-
+        let table = builder.build();
         write!(f, "{}", table)
     }
 }
