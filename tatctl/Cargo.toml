@@ -8,5 +8,7 @@ anyhow = "1.0.100"
 camino = "1.2.1"
 clap = { version = "4.5.53", features = ["derive"] }
 libtatted = { version = "0.1.0", path = "../libtatted" }
+log = "0.4.28"
+simple_logger = "5.1.0"
 strum = { version = "0.27.2", features = ["derive"] }
 

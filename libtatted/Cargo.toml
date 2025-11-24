@@ -12,3 +12,4 @@ thiserror = "2.0.17"
 image = { version = "0.25.9", features = ["png", "bmp", "jpeg" ] }
 camino = "1.2.1"
 tabled = "0.20.0"
+log = "0.4.28"

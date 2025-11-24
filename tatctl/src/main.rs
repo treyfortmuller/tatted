@@ -82,6 +82,14 @@ pub enum DisplayCommands {
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
+    let level = match cli.debug {
+        true => log::Level::Debug,
+        false => log::Level::Info,
+    };
+
+    // Log messages below the provided level will be filtered out, the RUST_LOG env var is not used here.
+    simple_logger::init_with_level(level)?;
+
     let res = Resolution::new(400, 300);
 
     match cli.command {

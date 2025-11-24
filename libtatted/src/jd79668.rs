@@ -2,6 +2,7 @@ use crate::{InkyError, InkyImage, InkyResult, Resolution};
 use camino::Utf8PathBuf;
 use gpiocdev::Request;
 use gpiocdev::line::{Bias, Direction, Value};
+use log::debug;
 use spidev::{SpiModeFlags, Spidev, SpidevOptions};
 use std::io::Write;
 use std::thread;
@@ -154,8 +155,12 @@ impl InkyJd79668 {
     /// The display will need to be initialized with [`Self::initialize`] before new images can be
     /// rendered on the display.
     pub fn new(cfg: Jd79668Config) -> InkyResult<Self> {
+        debug!("initializing a new inky display, taking GPIOs");
+
         // Prepare GPIO lines
         let gpios = Jd79668Gpios::from_config(cfg.gpios)?;
+
+        debug!("taking SPI device");
 
         // Prepare SPI device
         let mut spi = Spidev::open(cfg.spi_path)?;
@@ -165,6 +170,8 @@ impl InkyJd79668 {
             .mode(SpiModeFlags::SPI_MODE_0 | SpiModeFlags::SPI_NO_CS)
             .build();
         spi.configure(&options)?;
+
+        debug!("successfully took ownership of required peripherals");
 
         Ok(Self {
             spi,
@@ -176,6 +183,8 @@ impl InkyJd79668 {
 
     /// Perform a hardware reset
     pub fn hardware_reset(&mut self) -> InkyResult<()> {
+        debug!("performing a display hardware reset");
+
         // The sleeps are stolen from the inky python lib, haven't tested to see how necessary they are
         self.gpios.reset.set_lone_value(Value::Inactive)?;
         thread::sleep(Duration::from_millis(100));
@@ -189,6 +198,8 @@ impl InkyJd79668 {
     /// Initialize the display
     pub fn initialize(&mut self) -> InkyResult<()> {
         use Jd79668Commands as Cmd;
+
+        debug!("running display initialization");
 
         self.hardware_reset()?;
 
@@ -296,6 +307,8 @@ impl InkyJd79668 {
     /// Refresh the display with the [`InkyImage`], this clones the stored palletized image.
     pub fn show(&mut self, img: &InkyImage) -> InkyResult<()> {
         use Jd79668Commands as Cmd;
+
+        debug!("attempting to show a new image on display");
 
         if !self.initialized {
             return Err(InkyError::Uninitialized);
