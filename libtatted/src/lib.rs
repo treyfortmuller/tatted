@@ -1,12 +1,10 @@
 pub mod colormap;
-pub mod eeprom;
 pub mod error;
 pub mod image;
 pub mod jd79668;
 pub mod peripherals;
 
 pub use colormap::*;
-pub use eeprom::*;
 pub use error::*;
 pub use image::*;
 pub use jd79668::*;

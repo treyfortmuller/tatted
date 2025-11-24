@@ -4,8 +4,6 @@ use i2cdev::linux::{LinuxI2CBus, LinuxI2CError};
 use spidev::Spidev;
 use std::collections::HashMap;
 use std::fmt;
-use std::fs;
-use tabled::{Table, Tabled};
 use tabled::{builder::Builder, settings::Style};
 
 /// An association between the filepath to a GPIO character device, and the result of trying to open it.
@@ -14,10 +12,12 @@ use tabled::{builder::Builder, settings::Style};
 pub struct GpioChipResults(HashMap<Utf8PathBuf, gpiocdev::Result<Chip>>);
 
 /// An association between the filepath to an I2C character device, and the result of trying to open it.
-type I2cBusResults = HashMap<Utf8PathBuf, Result<LinuxI2CBus, LinuxI2CError>>;
+#[derive(Debug)]
+pub struct I2cBusResults(HashMap<Utf8PathBuf, Result<LinuxI2CBus, LinuxI2CError>>);
 
 /// An association between the filepath to a SPI character device, and the result of trying to open it.
-type SpiDevResults = HashMap<Utf8PathBuf, std::io::Result<Spidev>>;
+#[derive(Debug)]
+pub struct SpiDevResults(HashMap<Utf8PathBuf, std::io::Result<Spidev>>);
 
 pub struct ProbePeripherals {
     gpio: GpioChipResults,
@@ -34,33 +34,6 @@ impl ProbePeripherals {
         }
     }
 
-    fn probe_spi() -> SpiDevResults {
-        let dev_paths = list_matching(Utf8PathBuf::from("/dev"), "spidev");
-
-        let mut res = HashMap::new();
-
-        for path in dev_paths {
-            let dev_res = Spidev::open(&path);
-            res.insert(path, dev_res);
-        }
-
-        res
-    }
-
-    fn probe_i2c() -> I2cBusResults {
-        let bus_paths = list_matching(Utf8PathBuf::from("/dev"), "i2c-");
-
-        let mut res = HashMap::new();
-
-        // TODO (tff): might want LinuxI2cDevice here and not "Bus"
-        for path in bus_paths {
-            let bus_res = LinuxI2CBus::new(&path);
-            res.insert(path, bus_res);
-        }
-
-        res
-    }
-
     fn probe_gpios() -> GpioChipResults {
         let chip_paths = list_matching(Utf8PathBuf::from("/dev"), "gpiochip");
 
@@ -72,6 +45,32 @@ impl ProbePeripherals {
         }
 
         GpioChipResults(res)
+    }
+
+    fn probe_i2c() -> I2cBusResults {
+        let bus_paths = list_matching(Utf8PathBuf::from("/dev"), "i2c-");
+
+        let mut res = HashMap::new();
+
+        for path in bus_paths {
+            let bus_res = LinuxI2CBus::new(&path);
+            res.insert(path, bus_res);
+        }
+
+        I2cBusResults(res)
+    }
+
+    fn probe_spi() -> SpiDevResults {
+        let dev_paths = list_matching(Utf8PathBuf::from("/dev"), "spidev");
+
+        let mut res = HashMap::new();
+
+        for path in dev_paths {
+            let dev_res = Spidev::open(&path);
+            res.insert(path, dev_res);
+        }
+
+        SpiDevResults(res)
     }
 }
 
@@ -98,9 +97,17 @@ fn list_matching(dir: Utf8PathBuf, prefix: &str) -> Vec<Utf8PathBuf> {
 
 impl fmt::Display for ProbePeripherals {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "GPIOs:\n{}", self.gpio)
+        write!(
+            f,
+            "GPIOs:\n{}\ni2c buses:\n{}\nSPI devices:\n{}",
+            self.gpio, self.i2c, self.spi
+        )
     }
 }
+
+//
+// A fancy tabled Display will get implemented for each device's newtype, useful for the tatctl CLI.
+//
 
 impl fmt::Display for GpioChipResults {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -137,56 +144,58 @@ impl fmt::Display for GpioChipResults {
     }
 }
 
-// #[derive(Debug, Default)]
-// pub struct ProbeInfo {
-//     pub eeprom: Option<EepromInfo>,
-//     pub eeprom_error: Option<String>,
-//     pub display: Option<DisplaySpec>,
-//     pub eeprom_bus: Option<PathBuf>,
-//     pub spi_devices: Vec<PathBuf>,
-//     pub gpio_chips: Vec<PathBuf>,
-//     pub gpio_chip_labels: Vec<String>,
-//     pub i2c_buses: Vec<PathBuf>,
-//     pub i2c_bus_results: Vec<I2cBusReport>,
-// }
+impl fmt::Display for I2cBusResults {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut builder = Builder::new();
 
-// pub fn probe_system() -> ProbeInfo {
-//     let mut info = ProbeInfo::default();
+        if self.0.is_empty() {
+            return write!(f, "No I2C buses discovered");
+        }
 
-//     info.spi_devices = list_matching("/dev", "spidev");
-//     info.gpio_chips = list_matching("/dev", "gpiochip");
-//     info.i2c_buses = list_matching("/dev", "i2c-");
-//     info.gpio_chip_labels = list_gpio_chip_labels(&info.gpio_chips);
+        for (path, res) in self.0.iter() {
+            let res_str = match res {
+                Ok(_) => {
+                    format!("Successfully opened I2C bus")
+                }
+                Err(e) => {
+                    format!("error: {:#?}", e)
+                }
+            };
 
-//     for bus in &info.i2c_buses {
-//         let status = read_eeprom(bus);
-//         info.i2c_bus_results.push(I2cBusReport {
-//             path: bus.clone(),
-//             status: status.clone(),
-//         });
+            builder.push_record([path.to_string(), res_str]);
+        }
 
-//         match status {
-//             I2cProbeStatus::Found(eeprom) => {
-//                 if info.eeprom.is_none() {
-//                     info.display = eeprom.display_spec();
-//                     info.eeprom = Some(eeprom);
-//                     info.eeprom_bus = Some(bus.clone());
-//                     info.eeprom_error = None;
-//                 }
-//             }
-//             I2cProbeStatus::Invalid(reason) => {
-//                 if info.eeprom_error.is_none() {
-//                     info.eeprom_error = Some(format!("invalid data: {reason}"));
-//                 }
-//             }
-//             I2cProbeStatus::Error(err) => {
-//                 if info.eeprom_error.is_none() {
-//                     info.eeprom_error = Some(err);
-//                 }
-//             }
-//             _ => {}
-//         }
-//     }
+        let mut table = builder.build();
+        table.with(Style::rounded());
 
-//     info
-// }
+        write!(f, "{}", table)
+    }
+}
+
+impl fmt::Display for SpiDevResults {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut builder = Builder::new();
+
+        if self.0.is_empty() {
+            return write!(f, "No SPI devices discovered");
+        }
+
+        for (path, res) in self.0.iter() {
+            let res_str = match res {
+                Ok(_) => {
+                    format!("Successfully opened SPI device")
+                }
+                Err(e) => {
+                    format!("error: {:#?}", e)
+                }
+            };
+
+            builder.push_record([path.to_string(), res_str]);
+        }
+
+        let mut table = builder.build();
+        table.with(Style::rounded());
+
+        write!(f, "{}", table)
+    }
+}
