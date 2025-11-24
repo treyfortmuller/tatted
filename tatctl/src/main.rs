@@ -49,11 +49,12 @@ enum Commands {
     },
 }
 
+// TODO (tff): implement later on if we need it
 /// Subcommands for display manipulation
 #[derive(Clone, Debug, Subcommand)]
 pub enum DisplayCommands {
-    /// Detect required peripherals and read display EEPROM
-    Detect,
+    /// Perform a hardware reset on the display
+    Reset,
 
     /// Clear the display, all white pixels
     Clear,
@@ -85,6 +86,7 @@ fn main() -> anyhow::Result<()> {
 
     match cli.command {
         Commands::Probe => {
+            println!("Probing peripherals...");
             let probe = ProbePeripherals::probe();
             println!("{}", probe);
         }
@@ -94,6 +96,7 @@ fn main() -> anyhow::Result<()> {
             colormap,
             dither,
         } => {
+            println!("Processing image...");
             let inky_img = match SupportedColorMaps::from(colormap) {
                 SupportedColorMaps::InkyFourColor(InkyFourColorMap) => {
                     let preproc = ImagePreProcessor::new(InkyFourColorMap, res);
@@ -105,29 +108,37 @@ fn main() -> anyhow::Result<()> {
                 }
             };
 
+            println!("Writing image to '{out_path}'");
             inky_img.save(out_path)?;
         }
         Commands::Display { command } => {
+            println!("Connecting to Inky display...");
             let mut inky = InkyJd79668::new(Jd79668Config::default())?;
+
+            println!("Initializing Inky display...");
             inky.initialize()?;
 
             // Would like to add the option to save the preprocessed image to the filesystem here before
             // showing it on the display.
             match command {
-                DisplayCommands::Detect => {
-                    todo!()
+                DisplayCommands::Reset => {
+                    println!("Performing hardware reset...");
+                    inky.hardware_reset()?;
                 }
+
                 DisplayCommands::Clear => {
                     let preproc = ImagePreProcessor::new(InkyFourColorMap, res);
                     let inky_img =
                         preproc.new_color(libtatted::Rgb::from(InkyFourColorPalette::White))?;
 
+                    println!("Clearing display...");
                     inky.show(&inky_img)?;
                 }
                 DisplayCommands::RenderImage { image_path, dither } => {
                     let preproc = ImagePreProcessor::new(InkyFourColorMap, res);
                     let inky_img = preproc.prepare_from_path(image_path, dither)?;
 
+                    println!("Showing image...");
                     inky.show(&inky_img)?;
                 }
                 DisplayCommands::RenderColor { color } => {
@@ -135,11 +146,14 @@ fn main() -> anyhow::Result<()> {
                     let preproc = ImagePreProcessor::new(InkyFourColorMap, res);
                     let inky_img = preproc.new_color(Rgb::from(palette_color))?;
 
+                    println!("Showing color...");
                     inky.show(&inky_img)?;
                 }
             }
         }
     }
+
+    println!("Done.");
 
     Ok(())
 }
