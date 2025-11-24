@@ -83,10 +83,10 @@ fn list_matching(dir: Utf8PathBuf, prefix: &str) -> Vec<Utf8PathBuf> {
     if let Ok(read_dir) = dir.read_dir_utf8() {
         for entry in read_dir.flatten() {
             let path = entry.path();
-            if let Some(name) = path.file_name() {
-                if name.starts_with(prefix) {
-                    entries.push(Utf8PathBuf::from(path));
-                }
+            if let Some(name) = path.file_name()
+                && name.starts_with(prefix)
+            {
+                entries.push(Utf8PathBuf::from(path));
             }
         }
     }
@@ -152,9 +152,7 @@ impl fmt::Display for I2cBusResults {
 
         for (path, res) in self.0.iter() {
             let res_str = match res {
-                Ok(_) => {
-                    format!("Successfully opened I2C bus")
-                }
+                Ok(_) => String::from("Successfully opened I2C bus"),
                 Err(e) => {
                     format!("error: {:#?}", e)
                 }
@@ -178,9 +176,7 @@ impl fmt::Display for SpiDevResults {
 
         for (path, res) in self.0.iter() {
             let res_str = match res {
-                Ok(_) => {
-                    format!("Successfully opened SPI device")
-                }
+                Ok(_) => String::from("Successfully opened SPI device"),
                 Err(e) => {
                     format!("error: {:#?}", e)
                 }

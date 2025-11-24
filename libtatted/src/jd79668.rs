@@ -232,7 +232,7 @@ impl InkyJd79668 {
 
         thread::sleep(Duration::from_millis(300));
 
-        self.spi.write(&[command])?;
+        self.spi.write_all(&[command])?;
 
         // Now send the data if some is provided
         if let Some(data) = data {
@@ -242,10 +242,10 @@ impl InkyJd79668 {
 
             // Chunk up the write if necessary
             if data.len() <= SPI_CHUNK_SIZE {
-                self.spi.write(data)?;
+                self.spi.write_all(data)?;
             } else {
                 for chunk in data.chunks(SPI_CHUNK_SIZE) {
-                    self.spi.write(chunk)?;
+                    self.spi.write_all(chunk)?;
                 }
             }
         }
@@ -276,7 +276,7 @@ impl InkyJd79668 {
             }
         }
 
-        return Err(InkyError::BusyTimeout { timeout });
+        Err(InkyError::BusyTimeout { timeout })
     }
 
     /// Send a SPI command and then wait for the busy GPIO pin to indicate that the display is ready for new data
@@ -330,11 +330,13 @@ impl InkyJd79668 {
     //
     /// Pack a palletized image into a flattened 2-bit-per-pixel buffer to be sent via SPI to the display.
     ///
-    /// - Input:  each pixel is a u8 ∈ {0,1,2,3}
-    /// - Output: Vec<u8> where each byte contains 4 pixels:
-    ///           [p0 p1 p2 p3] → (p0<<6) | (p1<<4) | (p2<<2) | (p3)
+    /// Input: each pixel is a u8 ∈ {0,1,2,3}
+    ///
+    /// Output: Vec<u8> where each byte contains 4 pixels:
+    /// [p0 p1 p2 p3] → (p0<<6) | (p1<<4) | (p2<<2) | (p3)
     ///
     /// Returns an error if any pixel value > 3.
+    #[allow(clippy::get_first)]
     fn pack_buffer(pixels: &[u8]) -> InkyResult<Vec<u8>> {
         if !pixels.iter().all(|&p| p < 4) {
             return Err(InkyError::InvalidPalettization {
@@ -343,7 +345,7 @@ impl InkyJd79668 {
             });
         }
 
-        let mut out = Vec::with_capacity((pixels.len() + 3) / 4);
+        let mut out = Vec::with_capacity(pixels.len().div_ceil(4));
 
         for chunk in pixels.chunks(4) {
             let p0 = *chunk.get(0).unwrap_or(&0);

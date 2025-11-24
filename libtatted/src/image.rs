@@ -41,7 +41,7 @@ impl<CMap: ColorMap<Color = Rgb<u8>>> ImagePreProcessor<CMap> {
         if dither {
             image::imageops::dither(rgb, &self.color_map);
         }
-        let index_image = index_colors(&rgb, &self.color_map);
+        let index_image = index_colors(rgb, &self.color_map);
 
         // Remap to a colorspace we can encode for saving prepared images to the filesystem
         let mapped = self.map_index_image(&index_image)?;
@@ -52,16 +52,13 @@ impl<CMap: ColorMap<Color = Rgb<u8>>> ImagePreProcessor<CMap> {
     /// Given an [`IndexImage`], map back into a "colorspace" image using the color map for this [`ImagePreProcessor`].
     fn map_index_image(&self, index_image: &IndexImage) -> InkyResult<DynamicImage> {
         // Remap to a colorspace we can encode for saving prepared images to the filesystem
-        let mapped = image::ImageBuffer::from_fn(
-            self.desired_res.width.into(),
-            self.desired_res.height.into(),
-            |x, y| {
+        let mapped =
+            image::ImageBuffer::from_fn(self.desired_res.width, self.desired_res.height, |x, y| {
                 let p = index_image.get_pixel(x, y);
                 self.color_map
                     .lookup(p.0[0] as usize)
                     .expect("indexed color out-of-range")
-            },
-        );
+            });
 
         Ok(DynamicImage::from(mapped))
     }
@@ -80,7 +77,7 @@ impl<CMap: ColorMap<Color = Rgb<u8>>> ImagePreProcessor<CMap> {
         let w = self.desired_res.width;
         let h = self.desired_res.height;
 
-        let pix = Luma::from_slice(&[self.color_map.index_of(&color) as u8]).clone();
+        let pix = *Luma::from_slice(&[self.color_map.index_of(&color) as u8]);
 
         let index_image = IndexImage::from_pixel(w, h, pix);
         let mapped = self.map_index_image(&index_image)?;

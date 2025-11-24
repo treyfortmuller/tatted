@@ -69,9 +69,7 @@ impl ColorMap for MonoColorMap {
     }
 
     fn lookup(&self, index: usize) -> Option<Self::Color> {
-        MonoColorPalette::try_from(index)
-            .map(|color| Rgb::from(color))
-            .ok()
+        MonoColorPalette::try_from(index).map(Rgb::from).ok()
     }
 
     fn map_color(&self, color: &mut Self::Color) {
@@ -80,6 +78,6 @@ impl ColorMap for MonoColorMap {
             .lookup(nearest_color_index)
             .expect("it is a logic error to hit this index out of bounds");
 
-        *color = Rgb::from(nearest_color)
+        *color = nearest_color
     }
 }
