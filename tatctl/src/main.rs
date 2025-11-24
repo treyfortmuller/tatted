@@ -2,7 +2,7 @@ use camino::Utf8PathBuf;
 use clap::{Parser, Subcommand};
 use libtatted::{
     ImagePreProcessor, InkyFourColorMap, InkyFourColorPalette, InkyJd79668, Jd79668Config,
-    MonoColorMap, Resolution, Rgb, SupportedColorMaps,
+    MonoColorMap, ProbePeripherals, Resolution, Rgb, SupportedColorMaps,
 };
 use tatctl::{CliColorMaps, CliColors};
 
@@ -19,6 +19,9 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Probe the system for the required peripheral devices, print results and exit
+    Probe,
+
     /// Display manipulation and rendering
     Display {
         #[command(subcommand)]
@@ -81,6 +84,10 @@ fn main() -> anyhow::Result<()> {
     let res = Resolution::new(400, 300);
 
     match cli.command {
+        Commands::Probe => {
+            let probe = ProbePeripherals::probe();
+            println!("{}", probe);
+        }
         Commands::Image {
             image_path,
             out_path,
