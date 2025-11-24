@@ -10,6 +10,7 @@ spidev = "0.7.1"
 strum = "0.27.2"
 thiserror = "2.0.17"
 image = { version = "0.25.9", features = ["png", "bmp", "jpeg" ] }
-camino = "1.2.1"
+camino = { version = "1.2.1", features = ["serde1"] }
 tabled = "0.20.0"
 log = "0.4.28"
+serde = { version = "1.0.228", features = ["derive"] }

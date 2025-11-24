@@ -3,6 +3,7 @@ use camino::Utf8PathBuf;
 use gpiocdev::Request;
 use gpiocdev::line::{Bias, Direction, Value};
 use log::debug;
+use serde::{Deserialize, Serialize};
 use spidev::{SpiModeFlags, Spidev, SpidevOptions};
 use std::io::Write;
 use std::thread;
@@ -18,7 +19,7 @@ const Y_ADDR_START_L: u8 = 0x2C;
 const SPI_CHUNK_SIZE: usize = 4096;
 
 /// Configuration for GPIOs required for Inky displays.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Jd79668GpiosConfig {
     /// Path to the GPIO chip
     pub gpio_chip: Utf8PathBuf,
@@ -116,6 +117,7 @@ pub enum Jd79668Commands {
     ResolutionSetting = 0x61,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Jd79668Config {
     pub display_res: Resolution,
     pub spi_path: Utf8PathBuf,
