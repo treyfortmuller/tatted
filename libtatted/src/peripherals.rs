@@ -4,7 +4,7 @@ use i2cdev::linux::{LinuxI2CBus, LinuxI2CError};
 use spidev::Spidev;
 use std::collections::HashMap;
 use std::fmt;
-use tabled::{builder::Builder, settings::Style};
+use tabled::builder::Builder;
 
 /// An association between the filepath to a GPIO character device, and the result of trying to open it.
 // type GpioChipResults = HashMap<Utf8PathBuf, gpiocdev::Result<Chip>>;
